@@ -5,7 +5,7 @@ import { AuthService } from './auth.service';
 import { UsersService } from '../../users/services/users.service';
 import { PasswordService } from './password.service';
 import { TokenService } from './token.service';
-import { AuthResponseDto } from '../dto/auth-response.dto';
+import { AuthResponseDto } from '../dto/responses/auth-response.dto';
 
 const mockUser = {
   id: 'uuid-1',

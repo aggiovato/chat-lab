@@ -95,8 +95,25 @@ Para evitar dependencias circulares:
 
 ### DTOs
 - Validados con `class-validator` y `class-transformer`
-- Separados en: entrada (`CreateXDto`, `UpdateXDto`, `QueryXDto`) y salida (`XResponseDto`)
+- Organizados en subcarpetas: `dto/requests/` para entrada y `dto/responses/` para salida, cuando existen ambos tipos
 - Los Response DTOs deben omitir campos sensibles (e.g. `passwordHash`)
+- Los Response DTOs que mapean desde un modelo Prisma usan un constructor explícito para controlar qué campos se exponen
+
+### Mensajes de error
+- **Todos los mensajes de error lanzados con excepciones NestJS deben estar en inglés** (`NotFoundException`, `ConflictException`, `UnauthorizedException`, `ForbiddenException`, etc.)
+- Los mensajes de log (`Logger`) también en inglés
+- Ejemplo correcto: `throw new NotFoundException('User not found')`
+- Ejemplo incorrecto: `throw new NotFoundException('Usuario no encontrado')`
+
+### Comentarios en services
+- No agregar comentarios que describan lo que hace el código — los nombres de métodos ya lo dicen
+- **Sí agregar comentarios** cuando exista lógica de negocio no obvia: una restricción de dominio, una regla que podría sorprender, o una decisión deliberada que parece un error
+- Formato: una sola línea sobre el bloque relevante
+- Ejemplo válido:
+  ```typescript
+  // Deduplicate: creator is added explicitly as OWNER, skip if already in memberIds
+  const memberIds = [...new Set([userId, ...dto.memberIds])];
+  ```
 
 ### Identificadores
 - Todos los modelos usan `UUID` como clave primaria (`@default(uuid())`)

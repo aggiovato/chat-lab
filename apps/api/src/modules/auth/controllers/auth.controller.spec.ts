@@ -2,8 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UserStatus } from '@prisma/client';
 import { AuthController } from './auth.controller';
 import { AuthService } from '../services/auth.service';
-import { AuthResponseDto } from '../dto/auth-response.dto';
-import { UserResponseDto } from '../../users/dto/user-response.dto';
+import { AuthResponseDto } from '../dto/responses/auth-response.dto';
+import { UserResponseDto } from '../../users/dto/responses/user-response.dto';
 
 const mockUser = {
   id: 'uuid-1',

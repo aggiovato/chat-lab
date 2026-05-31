@@ -2,9 +2,9 @@ import { Body, Controller, Get, Param, Patch, Query } from '@nestjs/common';
 import type { User } from '@prisma/client';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { UsersService } from '../services/users.service';
-import { UpdateUserDto } from '../dto/update-user.dto';
-import { UserResponseDto } from '../dto/user-response.dto';
-import { UserSearchQueryDto } from '../dto/user-search-query.dto';
+import { UpdateUserDto } from '../dto/requests/update-user.dto';
+import { UserResponseDto } from '../dto/responses/user-response.dto';
+import { UserSearchQueryDto } from '../dto/requests/user-search-query.dto';
 
 @Controller('users')
 export class UsersController {

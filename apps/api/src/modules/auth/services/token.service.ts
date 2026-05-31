@@ -30,7 +30,7 @@ export class TokenService {
         secret: process.env.JWT_ACCESS_SECRET ?? 'access-secret',
       });
     } catch {
-      throw new UnauthorizedException('Token de acceso inválido');
+      throw new UnauthorizedException('Invalid access token');
     }
   }
 
@@ -40,7 +40,7 @@ export class TokenService {
         secret: process.env.JWT_REFRESH_SECRET ?? 'refresh-secret',
       });
     } catch {
-      throw new UnauthorizedException('Refresh token inválido');
+      throw new UnauthorizedException('Invalid refresh token');
     }
   }
 }

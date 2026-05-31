@@ -3,11 +3,11 @@ import type { User } from '@prisma/client';
 import { UsersService } from '../../users/services/users.service';
 import { PasswordService } from './password.service';
 import { TokenService } from './token.service';
-import { RegisterDto } from '../dto/register.dto';
-import { LoginDto } from '../dto/login.dto';
-import { RefreshTokenDto } from '../dto/refresh-token.dto';
-import { AuthResponseDto } from '../dto/auth-response.dto';
-import { UserResponseDto } from '../../users/dto/user-response.dto';
+import { RegisterDto } from '../dto/requests/register.dto';
+import { LoginDto } from '../dto/requests/login.dto';
+import { RefreshTokenDto } from '../dto/requests/refresh-token.dto';
+import { AuthResponseDto } from '../dto/responses/auth-response.dto';
+import { UserResponseDto } from '../../users/dto/responses/user-response.dto';
 
 @Injectable()
 export class AuthService {
@@ -19,10 +19,10 @@ export class AuthService {
 
   async register(dto: RegisterDto): Promise<AuthResponseDto> {
     const emailTaken = await this.usersService.findByEmail(dto.email);
-    if (emailTaken) throw new ConflictException('El email ya está registrado');
+    if (emailTaken) throw new ConflictException('Email already registered');
 
     const usernameTaken = await this.usersService.findByUsername(dto.username);
-    if (usernameTaken) throw new ConflictException('El username ya está en uso');
+    if (usernameTaken) throw new ConflictException('Username already taken');
 
     const passwordHash = await this.passwordService.hash(dto.password);
     const user = await this.usersService.create({
@@ -37,10 +37,10 @@ export class AuthService {
 
   async login(dto: LoginDto): Promise<AuthResponseDto> {
     const user = await this.usersService.findByEmail(dto.email);
-    if (!user) throw new UnauthorizedException('Credenciales inválidas');
+    if (!user) throw new UnauthorizedException('Invalid credentials');
 
     const valid = await this.passwordService.compare(dto.password, user.passwordHash);
-    if (!valid) throw new UnauthorizedException('Credenciales inválidas');
+    if (!valid) throw new UnauthorizedException('Invalid credentials');
 
     return this.buildAuthResponse(user);
   }

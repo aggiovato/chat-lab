@@ -3,8 +3,8 @@ import { NotFoundException } from '@nestjs/common';
 import { UserStatus } from '@prisma/client';
 import { UsersController } from './users.controller';
 import { UsersService } from '../services/users.service';
-import { UpdateUserDto } from '../dto/update-user.dto';
-import { UserResponseDto } from '../dto/user-response.dto';
+import { UpdateUserDto } from '../dto/requests/update-user.dto';
+import { UserResponseDto } from '../dto/responses/user-response.dto';
 
 const mockUser = {
   id: 'uuid-1',

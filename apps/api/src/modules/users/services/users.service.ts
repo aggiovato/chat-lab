@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, User, UserStatus } from '@prisma/client';
 import { PrismaService } from '../../../core/prisma/prisma.service';
-import { UpdateUserDto } from '../dto/update-user.dto';
+import { UpdateUserDto } from '../dto/requests/update-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -13,7 +13,7 @@ export class UsersService {
 
   async findByIdOrThrow(id: string): Promise<User> {
     const user = await this.findById(id);
-    if (!user) throw new NotFoundException(`Usuario ${id} no encontrado`);
+    if (!user) throw new NotFoundException(`User ${id} not found`);
     return user;
   }
 

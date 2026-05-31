@@ -3,11 +3,11 @@ import type { User } from '@prisma/client';
 import { AuthService } from '../services/auth.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
-import { RegisterDto } from '../dto/register.dto';
-import { LoginDto } from '../dto/login.dto';
-import { RefreshTokenDto } from '../dto/refresh-token.dto';
-import { AuthResponseDto } from '../dto/auth-response.dto';
-import { UserResponseDto } from '../../users/dto/user-response.dto';
+import { RegisterDto } from '../dto/requests/register.dto';
+import { LoginDto } from '../dto/requests/login.dto';
+import { RefreshTokenDto } from '../dto/requests/refresh-token.dto';
+import { AuthResponseDto } from '../dto/responses/auth-response.dto';
+import { UserResponseDto } from '../../users/dto/responses/user-response.dto';
 
 @Controller('auth')
 export class AuthController {
