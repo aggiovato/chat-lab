@@ -1,0 +1,141 @@
+@startuml messages-classes
+!theme plain
+title Chat Lab — Dominio: Messages
+
+skinparam class {
+  BackgroundColor #F5F0FF
+  BorderColor #6633AA
+  HeaderBackgroundColor #DDD0FF
+  ArrowColor #441188
+}
+
+class MessagesModule << (M,#FFD700) Module >> {
+}
+
+class MessagesController << (C,#4CAF50) Controller >> {
+  GET    /api/conversations/:conversationId/messages
+  POST   /api/conversations/:conversationId/messages
+  PATCH  /api/messages/:messageId
+  DELETE /api/messages/:messageId
+  --
+  + findAll(conversationId: string, query: MessageListQueryDto): Promise<MessageResponseDto[]>
+  + send(user: User, conversationId: string, dto: SendMessageDto): Promise<MessageResponseDto>
+  + update(user: User, messageId: string, dto: UpdateMessageDto): Promise<MessageResponseDto>
+  + remove(user: User, messageId: string): Promise<void>
+}
+
+class MessageReactionsController << (C,#4CAF50) Controller >> {
+  POST   /api/messages/:messageId/reactions
+  DELETE /api/messages/:messageId/reactions/:emoji
+  --
+  + addReaction(user: User, messageId: string, dto: AddMessageReactionDto): Promise<void>
+  + removeReaction(user: User, messageId: string, emoji: string): Promise<void>
+}
+
+class MessageReadReceiptsController << (C,#4CAF50) Controller >> {
+  POST /api/messages/:messageId/read
+  --
+  + markRead(user: User, messageId: string): Promise<void>
+}
+
+class MessagesService << (S,#FF9800) Service >> {
+  - prisma: PrismaService
+  - conversationsService: ConversationsService
+  - commandsService: CommandsService
+  --
+  + findAll(conversationId: string, query: MessageListQueryDto): Promise<Message[]>
+  + send(senderId: string, conversationId: string, dto: SendMessageDto): Promise<Message>
+  + update(userId: string, messageId: string, dto: UpdateMessageDto): Promise<Message>
+  + softDelete(userId: string, messageId: string): Promise<void>
+  + findById(messageId: string): Promise<Message | null>
+  - isCommand(content: string): boolean
+}
+
+class MessageReactionsService << (S,#FF9800) Service >> {
+  - prisma: PrismaService
+  --
+  + add(userId: string, messageId: string, emoji: string): Promise<MessageReaction>
+  + remove(userId: string, messageId: string, emoji: string): Promise<void>
+  + findByMessage(messageId: string): Promise<MessageReaction[]>
+}
+
+class MessageReadReceiptsService << (S,#FF9800) Service >> {
+  - prisma: PrismaService
+  --
+  + markRead(userId: string, messageId: string): Promise<MessageReadReceipt>
+  + findByMessage(messageId: string): Promise<MessageReadReceipt[]>
+  + hasRead(userId: string, messageId: string): Promise<boolean>
+}
+
+class SendMessageDto << (D,#9C27B0) DTO >> {
+  + content?: string
+  + type?: MessageType
+  + replyToId?: string
+}
+
+class UpdateMessageDto << (D,#9C27B0) DTO >> {
+  + content: string
+}
+
+class MessageResponseDto << (D,#9C27B0) DTO >> {
+  + id: string
+  + conversationId: string
+  + senderId?: string
+  + type: MessageType
+  + content?: string
+  + commandName?: string
+  + replyToId?: string
+  + editedAt?: Date
+  + deletedAt?: Date
+  + createdAt: Date
+  + reactions: MessageReactionDto[]
+  + readReceipts: MessageReadReceiptDto[]
+}
+
+class MessageListQueryDto << (D,#9C27B0) DTO >> {
+  + cursor?: string
+  + limit?: number
+}
+
+class AddMessageReactionDto << (D,#9C27B0) DTO >> {
+  + emoji: string
+}
+
+class MarkMessageReadDto << (D,#9C27B0) DTO >> {
+}
+
+enum MessageType << (E,#2196F3) Enum >> {
+  TEXT
+  COMMAND
+  SYSTEM
+  IMAGE
+  AUDIO
+  FILE
+  STICKER
+}
+
+MessagesModule *-- MessagesController
+MessagesModule *-- MessageReactionsController
+MessagesModule *-- MessageReadReceiptsController
+MessagesModule *-- MessagesService
+MessagesModule *-- MessageReactionsService
+MessagesModule *-- MessageReadReceiptsService
+
+MessagesController          --> MessagesService              : usa
+MessageReactionsController  --> MessageReactionsService      : usa
+MessageReadReceiptsController --> MessageReadReceiptsService : usa
+
+MessagesController ..> SendMessageDto       : recibe
+MessagesController ..> UpdateMessageDto     : recibe
+MessagesController ..> MessageListQueryDto  : recibe
+MessagesController ..> MessageResponseDto   : retorna
+MessageReactionsController ..> AddMessageReactionDto : recibe
+
+note right of MessagesService
+  send() detecta si el contenido empieza
+  por "/" y delega en CommandsService.
+  softDelete() usa deletedAt (borrado lógico).
+  Solo el autor puede editar/borrar.
+end note
+
+@enduml

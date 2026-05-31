@@ -1,0 +1,131 @@
+@startuml conversations-classes
+!theme plain
+title Chat Lab — Dominio: Conversations
+
+skinparam class {
+  BackgroundColor #F0F8FF
+  BorderColor #2255AA
+  HeaderBackgroundColor #C8DFFF
+  ArrowColor #113377
+}
+
+class ConversationsModule << (M,#FFD700) Module >> {
+}
+
+class ConversationsController << (C,#4CAF50) Controller >> {
+  GET    /api/conversations
+  POST   /api/conversations/direct
+  POST   /api/conversations/group
+  GET    /api/conversations/:conversationId
+  PATCH  /api/conversations/:conversationId
+  --
+  + findAll(user: User): Promise<ConversationResponseDto[]>
+  + createDirect(user: User, dto: CreateDirectConversationDto): Promise<ConversationResponseDto>
+  + createGroup(user: User, dto: CreateGroupConversationDto): Promise<ConversationResponseDto>
+  + findOne(conversationId: string): Promise<ConversationResponseDto>
+  + update(conversationId: string, dto: UpdateConversationDto): Promise<ConversationResponseDto>
+}
+
+class ConversationMembersController << (C,#4CAF50) Controller >> {
+  GET    /api/conversations/:conversationId/members
+  POST   /api/conversations/:conversationId/members
+  DELETE /api/conversations/:conversationId/members/:userId
+  --
+  + findAll(conversationId: string): Promise<ConversationMemberResponseDto[]>
+  + addMember(conversationId: string, dto: AddConversationMemberDto): Promise<ConversationMemberResponseDto>
+  + removeMember(conversationId: string, userId: string): Promise<void>
+}
+
+class ConversationsService << (S,#FF9800) Service >> {
+  - prisma: PrismaService
+  --
+  + findAllByUser(userId: string): Promise<Conversation[]>
+  + findById(id: string): Promise<Conversation | null>
+  + createDirect(userId: string, dto: CreateDirectConversationDto): Promise<Conversation>
+  + createGroup(userId: string, dto: CreateGroupConversationDto): Promise<Conversation>
+  + update(id: string, dto: UpdateConversationDto): Promise<Conversation>
+  + isMember(conversationId: string, userId: string): Promise<boolean>
+}
+
+class ConversationMembersService << (S,#FF9800) Service >> {
+  - prisma: PrismaService
+  --
+  + findAll(conversationId: string): Promise<ConversationMember[]>
+  + addMember(conversationId: string, userId: string, role?: MemberRole): Promise<ConversationMember>
+  + removeMember(conversationId: string, userId: string): Promise<void>
+  + updateRole(conversationId: string, userId: string, role: MemberRole): Promise<ConversationMember>
+}
+
+class CreateDirectConversationDto << (D,#9C27B0) DTO >> {
+  + targetUserId: string
+}
+
+class CreateGroupConversationDto << (D,#9C27B0) DTO >> {
+  + title?: string
+  + memberIds: string[]
+}
+
+class UpdateConversationDto << (D,#9C27B0) DTO >> {
+  + title?: string
+  + imageUrl?: string
+}
+
+class AddConversationMemberDto << (D,#9C27B0) DTO >> {
+  + userId: string
+  + role?: MemberRole
+}
+
+class ConversationResponseDto << (D,#9C27B0) DTO >> {
+  + id: string
+  + type: ConversationType
+  + title?: string
+  + imageUrl?: string
+  + members: ConversationMemberResponseDto[]
+  + createdAt: Date
+  + updatedAt: Date
+}
+
+class ConversationMemberResponseDto << (D,#9C27B0) DTO >> {
+  + id: string
+  + userId: string
+  + conversationId: string
+  + role: MemberRole
+  + joinedAt: Date
+  + muted: boolean
+  + archived: boolean
+}
+
+enum ConversationType << (E,#2196F3) Enum >> {
+  DIRECT
+  GROUP
+  CHANNEL
+}
+
+enum MemberRole << (E,#2196F3) Enum >> {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+ConversationsModule *-- ConversationsController
+ConversationsModule *-- ConversationMembersController
+ConversationsModule *-- ConversationsService
+ConversationsModule *-- ConversationMembersService
+
+ConversationsController       --> ConversationsService          : usa
+ConversationMembersController --> ConversationMembersService    : usa
+ConversationMembersController --> ConversationsService          : valida membresía
+
+ConversationsController ..> CreateDirectConversationDto  : recibe
+ConversationsController ..> CreateGroupConversationDto   : recibe
+ConversationsController ..> UpdateConversationDto        : recibe
+ConversationsController ..> ConversationResponseDto      : retorna
+ConversationMembersController ..> AddConversationMemberDto : recibe
+ConversationMembersController ..> ConversationMemberResponseDto : retorna
+
+note bottom of ConversationsService
+  createDirect valida que no exista ya una
+  conversación directa entre los mismos 2 usuarios.
+end note
+
+@enduml

@@ -1,0 +1,97 @@
+@startuml module-dependencies
+!theme plain
+title Chat Lab API — Dependencias entre módulos NestJS
+
+skinparam package {
+  BackgroundColor #F9F9F9
+  BorderColor #AAAAAA
+  FontStyle bold
+}
+skinparam component {
+  BackgroundColor #EEF4FF
+  BorderColor #5588CC
+}
+skinparam arrow {
+  Color #555555
+  FontSize 11
+}
+
+package "PrismaModule" #FFFBE6 {
+  [PrismaService]
+}
+
+package "HealthModule" #F0FFF0 {
+  [HealthController]
+}
+
+package "AuthModule" #FFF0F0 {
+  [AuthController]
+  [AuthService]
+  [PasswordService]
+  [TokenService]
+}
+
+package "UsersModule" #FFF5E6 {
+  [UsersController]
+  [UsersService]
+}
+
+package "ConversationsModule" #F0F8FF {
+  [ConversationsController]
+  [ConversationMembersController]
+  [ConversationsService]
+  [ConversationMembersService]
+}
+
+package "MessagesModule" #F5F0FF {
+  [MessagesController]
+  [MessageReactionsController]
+  [MessageReadReceiptsController]
+  [MessagesService]
+  [MessageReactionsService]
+  [MessageReadReceiptsService]
+}
+
+package "RealtimeModule" #F0FFFA {
+  [ChatGateway]
+  [RealtimeService]
+  [SocketAuthService]
+  [PresenceService]
+}
+
+package "CommandsModule" #FFF0FA {
+  [CommandsController]
+  [CommandsService]
+  [CommandParserService]
+  [CommandRegistryService]
+}
+
+package "AttachmentsModule" #F5F5F5 {
+  [AttachmentsController]
+  [AttachmentsService]
+  [StorageService]
+}
+
+AuthModule        --> UsersModule        : usa
+AuthModule        --> PrismaModule       : usa
+UsersModule       --> PrismaModule       : usa
+ConversationsModule --> UsersModule      : usa
+ConversationsModule --> PrismaModule     : usa
+MessagesModule    --> ConversationsModule : usa
+MessagesModule    --> CommandsModule     : usa
+MessagesModule    --> PrismaModule       : usa
+RealtimeModule    --> AuthModule         : TokenService
+RealtimeModule    --> ConversationsModule : usa
+RealtimeModule    --> MessagesModule     : usa
+RealtimeModule    --> CommandsModule     : usa
+CommandsModule    --> PrismaModule       : usa
+AttachmentsModule --> MessagesModule     : usa
+AttachmentsModule --> PrismaModule       : usa
+
+note bottom of RealtimeModule
+  RealtimeModule depende de Messages,
+  pero Messages NO depende de Realtime
+  para evitar dependencias circulares.
+end note
+
+@enduml

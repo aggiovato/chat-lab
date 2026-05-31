@@ -1,0 +1,86 @@
+@startuml attachments-classes
+!theme plain
+title Chat Lab — Dominio: Attachments (reservado para post-MVP)
+
+skinparam class {
+  BackgroundColor #F5F5F5
+  BorderColor #888888
+  HeaderBackgroundColor #DDDDDD
+  ArrowColor #444444
+}
+
+class AttachmentsModule << (M,#FFD700) Module >> {
+}
+
+class AttachmentsController << (C,#4CAF50) Controller >> {
+  POST   /api/attachments/upload
+  GET    /api/attachments/:attachmentId
+  DELETE /api/attachments/:attachmentId
+  --
+  + upload(user: User, file: Express.Multer.File, dto: UploadAttachmentDto): Promise<AttachmentResponseDto>
+  + findOne(attachmentId: string): Promise<AttachmentResponseDto>
+  + remove(user: User, attachmentId: string): Promise<void>
+}
+
+class AttachmentsService << (S,#FF9800) Service >> {
+  - prisma: PrismaService
+  - storageService: StorageService
+  --
+  + upload(userId: string, file: Buffer, dto: UploadAttachmentDto): Promise<MessageAttachment>
+  + findById(id: string): Promise<MessageAttachment | null>
+  + delete(id: string): Promise<void>
+  + attachToMessage(attachmentId: string, messageId: string): Promise<void>
+}
+
+class StorageService << (S,#FF9800) Service >> {
+  + save(file: Buffer, mimeType: string, fileName: string): Promise<string>
+  + delete(url: string): Promise<void>
+  + getSignedUrl(url: string): Promise<string>
+}
+
+class CreateAttachmentDto << (D,#9C27B0) DTO >> {
+  + messageId: string
+  + mimeType: string
+  + fileName?: string
+}
+
+class UploadAttachmentDto << (D,#9C27B0) DTO >> {
+  + messageId?: string
+}
+
+class AttachmentResponseDto << (D,#9C27B0) DTO >> {
+  + id: string
+  + messageId: string
+  + url: string
+  + mimeType: string
+  + fileName?: string
+  + size?: number
+  + createdAt: Date
+}
+
+AttachmentsModule *-- AttachmentsController
+AttachmentsModule *-- AttachmentsService
+AttachmentsModule *-- StorageService
+
+AttachmentsController --> AttachmentsService  : usa
+AttachmentsService    --> StorageService      : delega almacenamiento
+
+AttachmentsController ..> UploadAttachmentDto    : recibe
+AttachmentsController ..> AttachmentResponseDto  : retorna
+
+note right of StorageService
+  Abstracción de almacenamiento:
+  - Local (desarrollo)
+  - S3-compatible (producción futura)
+
+  Validaciones pendientes:
+  - mime type permitido
+  - tamaño máximo de archivo
+end note
+
+note top of AttachmentsModule
+  Este dominio está reservado para post-MVP.
+  No es necesario implementarlo en la primera versión.
+end note
+
+@enduml

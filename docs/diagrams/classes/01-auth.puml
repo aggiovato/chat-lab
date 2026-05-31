@@ -1,0 +1,108 @@
+@startuml auth-classes
+!theme plain
+title Chat Lab — Dominio: Auth
+
+skinparam class {
+  BackgroundColor #FFF5F5
+  BorderColor #CC4444
+  HeaderBackgroundColor #FFDDDD
+  ArrowColor #883333
+}
+skinparam stereotype {
+  CBackgroundColor #FFCCCC
+}
+
+class AuthModule << (M,#FFD700) Module >> {
+}
+
+class AuthController << (C,#4CAF50) Controller >> {
+  POST /api/auth/register
+  POST /api/auth/login
+  GET  /api/auth/me
+  POST /api/auth/refresh
+  POST /api/auth/logout
+  --
+  + register(dto: RegisterDto): Promise<AuthResponseDto>
+  + login(dto: LoginDto): Promise<AuthResponseDto>
+  + me(user: User): Promise<UserResponseDto>
+  + refresh(dto: RefreshTokenDto): Promise<AuthResponseDto>
+  + logout(user: User): Promise<void>
+}
+
+class AuthService << (S,#FF9800) Service >> {
+  - usersService: UsersService
+  - passwordService: PasswordService
+  - tokenService: TokenService
+  --
+  + register(dto: RegisterDto): Promise<AuthResponseDto>
+  + login(dto: LoginDto): Promise<AuthResponseDto>
+  + validateUser(userId: string): Promise<User>
+  + refresh(refreshToken: string): Promise<AuthResponseDto>
+  + logout(userId: string): Promise<void>
+}
+
+class PasswordService << (S,#FF9800) Service >> {
+  + hash(plain: string): Promise<string>
+  + compare(plain: string, hash: string): Promise<boolean>
+}
+
+class TokenService << (S,#FF9800) Service >> {
+  + signAccess(payload: object): string
+  + signRefresh(payload: object): string
+  + verifyAccess(token: string): object
+  + verifyRefresh(token: string): object
+}
+
+class JwtAuthGuard << (G,#E91E63) Guard >> {
+  + canActivate(ctx: ExecutionContext): boolean
+}
+
+class JwtStrategy << (St,#9C27B0) Strategy >> {
+  + validate(payload: JwtPayload): Promise<User>
+}
+
+class RegisterDto << (D,#9C27B0) DTO >> {
+  + email: string
+  + username: string
+  + displayName?: string
+  + password: string
+}
+
+class LoginDto << (D,#9C27B0) DTO >> {
+  + email: string
+  + password: string
+}
+
+class RefreshTokenDto << (D,#9C27B0) DTO >> {
+  + refreshToken: string
+}
+
+class AuthResponseDto << (D,#9C27B0) DTO >> {
+  + accessToken: string
+  + refreshToken: string
+  + user: UserResponseDto
+}
+
+AuthModule      *-- AuthController
+AuthModule      *-- AuthService
+AuthModule      *-- PasswordService
+AuthModule      *-- TokenService
+AuthModule      *-- JwtAuthGuard
+AuthModule      *-- JwtStrategy
+
+AuthController  --> AuthService       : usa
+AuthService     --> PasswordService   : usa
+AuthService     --> TokenService      : usa
+AuthController  ..> RegisterDto       : recibe
+AuthController  ..> LoginDto          : recibe
+AuthController  ..> RefreshTokenDto   : recibe
+AuthController  ..> AuthResponseDto   : retorna
+JwtAuthGuard    --> JwtStrategy       : usa
+JwtStrategy     --> AuthService       : validateUser
+
+note right of AuthService
+  auth no gestiona usuarios directamente.
+  Delega en UsersService (UsersModule).
+end note
+
+@enduml

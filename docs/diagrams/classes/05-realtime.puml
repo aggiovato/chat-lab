@@ -1,0 +1,142 @@
+@startuml realtime-classes
+!theme plain
+title Chat Lab — Dominio: Realtime (WebSocket)
+
+skinparam class {
+  BackgroundColor #F0FFFA
+  BorderColor #118855
+  HeaderBackgroundColor #BBFFDD
+  ArrowColor #006633
+}
+
+class RealtimeModule << (M,#FFD700) Module >> {
+}
+
+class ChatGateway << (G,#00BCD4) Gateway >> {
+  @WebSocketGateway
+  --
+  - messagesService: MessagesService
+  - conversationsService: ConversationsService
+  - realtimeService: RealtimeService
+  - socketAuthService: SocketAuthService
+  --
+  + handleConnection(socket: Socket): Promise<void>
+  + handleDisconnect(socket: Socket): void
+  + handleJoin(socket: Socket, dto: JoinConversationDto): Promise<void>
+  + handleLeave(socket: Socket, dto: LeaveConversationDto): void
+  + handleSendMessage(socket: Socket, dto: SendSocketMessageDto): Promise<void>
+  + handleEditMessage(socket: Socket, data: object): Promise<void>
+  + handleDeleteMessage(socket: Socket, data: object): Promise<void>
+  + handleReadMessage(socket: Socket, data: object): Promise<void>
+  + handleTypingStart(socket: Socket, dto: TypingDto): void
+  + handleTypingStop(socket: Socket, dto: TypingDto): void
+}
+
+class RealtimeService << (S,#FF9800) Service >> {
+  - server: Server
+  --
+  + emitToRoom(room: string, event: string, payload: object): void
+  + emitToSocket(socketId: string, event: string, payload: object): void
+  + getRoomName(conversationId: string): string
+}
+
+class SocketAuthService << (S,#FF9800) Service >> {
+  - tokenService: TokenService
+  --
+  + authenticate(socket: Socket): Promise<User>
+  + getUser(socket: Socket): User | undefined
+}
+
+class PresenceService << (S,#FF9800) Service >> {
+  - onlineSockets: Map<string, Set<string>>
+  --
+  + userConnected(userId: string, socketId: string): void
+  + userDisconnected(userId: string, socketId: string): void
+  + isOnline(userId: string): boolean
+  + getOnlineUsers(userIds: string[]): string[]
+}
+
+class JoinConversationDto << (D,#9C27B0) DTO >> {
+  + conversationId: string
+}
+
+class LeaveConversationDto << (D,#9C27B0) DTO >> {
+  + conversationId: string
+}
+
+class SendSocketMessageDto << (D,#9C27B0) DTO >> {
+  + conversationId: string
+  + content?: string
+  + type?: MessageType
+  + replyToId?: string
+}
+
+class TypingDto << (D,#9C27B0) DTO >> {
+  + conversationId: string
+}
+
+class SocketErrorDto << (D,#9C27B0) DTO >> {
+  + code: string
+  + message: string
+}
+
+note as ClientEvents
+  <b>Eventos: Cliente → Servidor</b>
+  ----
+  chat:join
+  chat:leave
+  message:send
+  message:edit
+  message:delete
+  message:read
+  typing:start
+  typing:stop
+end note
+
+note as ServerEvents
+  <b>Eventos: Servidor → Cliente</b>
+  ----
+  chat:joined
+  chat:left
+  message:new
+  message:updated
+  message:deleted
+  message:read
+  typing:update
+  presence:update
+  error
+end note
+
+note as RoomConvention
+  <b>Room pattern</b>
+  ----
+  conversation:{conversationId}
+  Ej: conversation:8e80b29a-d2fd-...
+end note
+
+RealtimeModule *-- ChatGateway
+RealtimeModule *-- RealtimeService
+RealtimeModule *-- SocketAuthService
+RealtimeModule *-- PresenceService
+
+ChatGateway --> RealtimeService    : emite eventos
+ChatGateway --> SocketAuthService  : autentica socket
+ChatGateway --> PresenceService    : notifica conexión
+
+ChatGateway ..> JoinConversationDto    : recibe
+ChatGateway ..> LeaveConversationDto   : recibe
+ChatGateway ..> SendSocketMessageDto   : recibe
+ChatGateway ..> TypingDto              : recibe
+ChatGateway ..> SocketErrorDto         : emite
+
+ClientEvents .. ChatGateway
+ChatGateway .. ServerEvents
+RealtimeService .. RoomConvention
+
+note bottom of ChatGateway
+  El gateway NO crea mensajes en Prisma directamente.
+  Llama a MessagesService para toda la lógica de negocio.
+  El socket debe guardar el usuario en socket.data.user.
+end note
+
+@enduml

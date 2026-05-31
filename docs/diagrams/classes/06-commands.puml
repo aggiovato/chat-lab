@@ -1,0 +1,147 @@
+@startuml commands-classes
+!theme plain
+title Chat Lab — Dominio: Commands
+
+skinparam class {
+  BackgroundColor #FFF0FA
+  BorderColor #AA2288
+  HeaderBackgroundColor #FFCCEE
+  ArrowColor #771155
+}
+skinparam interface {
+  BackgroundColor #EEF4FF
+  BorderColor #4A90D9
+  HeaderBackgroundColor #D0E8FF
+}
+
+class CommandsModule << (M,#FFD700) Module >> {
+}
+
+class CommandsController << (C,#4CAF50) Controller >> {
+  GET  /api/commands
+  POST /api/commands/preview
+  --
+  + list(): Promise<CommandInfoDto[]>
+  + preview(dto: PreviewCommandDto): Promise<CommandResultDto>
+}
+
+class CommandsService << (S,#FF9800) Service >> {
+  - commandRegistry: CommandRegistryService
+  - commandParser: CommandParserService
+  - prisma: PrismaService
+  --
+  + execute(context: CommandContext): Promise<CommandResult>
+  + listCommands(): CommandInfo[]
+  + preview(input: string, context: Partial<CommandContext>): Promise<CommandResult>
+  - recordInvocation(context: CommandContext, result: CommandResult): Promise<void>
+}
+
+class CommandParserService << (S,#FF9800) Service >> {
+  + parse(input: string): ParsedCommand
+  + isCommand(input: string): boolean
+}
+
+class CommandRegistryService << (S,#FF9800) Service >> {
+  - handlers: Map<string, ChatCommand>
+  --
+  + register(command: ChatCommand): void
+  + resolve(name: string): ChatCommand | undefined
+  + getAll(): ChatCommand[]
+}
+
+interface ChatCommand << (I,#2196F3) Interface >> {
+  + name: string
+  + description: string
+  + usage?: string
+  + execute(ctx: CommandContext): Promise<CommandResult>
+}
+
+class CommandContext << (V,#607D8B) Value >> {
+  + conversationId: string
+  + userId: string
+  + commandName: string
+  + args: string[]
+  + rawInput: string
+}
+
+class CommandResult << (V,#607D8B) Value >> {
+  + success: boolean
+  + output?: string
+  + metadata?: Record<string, unknown>
+  + messageType: MessageType
+}
+
+class ParsedCommand << (V,#607D8B) Value >> {
+  + name: string
+  + args: string[]
+  + rawInput: string
+}
+
+class HelpCommand << (H,#FF5722) Handler >> {
+  + name: 'help'
+  + description: 'Muestra los comandos disponibles'
+  + execute(ctx: CommandContext): Promise<CommandResult>
+}
+
+class PingCommand << (H,#FF5722) Handler >> {
+  + name: 'ping'
+  + description: 'Responde con pong'
+  + execute(ctx: CommandContext): Promise<CommandResult>
+}
+
+class JokeCommand << (H,#FF5722) Handler >> {
+  + name: 'joke'
+  + description: 'Envía un chiste aleatorio'
+  + execute(ctx: CommandContext): Promise<CommandResult>
+}
+
+class CommandInfoDto << (D,#9C27B0) DTO >> {
+  + name: string
+  + description: string
+  + usage?: string
+}
+
+class PreviewCommandDto << (D,#9C27B0) DTO >> {
+  + input: string
+  + conversationId: string
+}
+
+class CommandResultDto << (D,#9C27B0) DTO >> {
+  + success: boolean
+  + output?: string
+  + messageType: MessageType
+}
+
+HelpCommand  ..|> ChatCommand : implementa
+PingCommand  ..|> ChatCommand : implementa
+JokeCommand  ..|> ChatCommand : implementa
+
+CommandsModule *-- CommandsController
+CommandsModule *-- CommandsService
+CommandsModule *-- CommandParserService
+CommandsModule *-- CommandRegistryService
+
+CommandsController     --> CommandsService        : usa
+CommandsService        --> CommandRegistryService  : usa
+CommandsService        --> CommandParserService    : usa
+CommandRegistryService o-- ChatCommand            : registra
+
+CommandsService ..> CommandContext  : usa
+CommandsService ..> CommandResult   : retorna
+CommandParserService ..> ParsedCommand : retorna
+
+CommandsController ..> CommandInfoDto    : retorna
+CommandsController ..> PreviewCommandDto : recibe
+CommandsController ..> CommandResultDto  : retorna
+
+note bottom of CommandsService
+  Flujo de ejecución:
+  1. MessagesService detecta prefijo "/"
+  2. CommandParserService extrae nombre y args
+  3. CommandRegistryService resuelve el handler
+  4. Handler ejecuta la acción
+  5. CommandInvocation se persiste en Prisma
+  6. Se crea Message tipo COMMAND o SYSTEM
+end note
+
+@enduml
