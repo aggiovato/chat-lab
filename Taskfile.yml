@@ -1,0 +1,108 @@
+version: '3'
+
+vars:
+  COMPOSE: docker compose
+  COMPOSE_TEST: docker compose -f docker-compose.yml -f docker-compose.test.yml
+  API_TEST_IMAGE: chatlab/api-test
+
+tasks:
+  # ── Setup ────────────────────────────────────────────────────────────────────
+
+  hosts:setup:
+    desc: Add local hostname entries to /etc/hosts (requires sudo, idempotent)
+    cmd: grep -q "chat.local" /etc/hosts || echo "127.0.0.1 chat.local api.chat.local" | sudo tee -a /etc/hosts
+
+  # ── Full stack ────────────────────────────────────────────────────────────────
+
+  up:
+    desc: Start the full Docker stack (detached)
+    cmd: "{{.COMPOSE}} up -d"
+
+  down:
+    desc: Stop and remove all containers
+    cmd: "{{.COMPOSE}} down"
+
+  down:clean:
+    desc: Stop containers and remove volumes (deletes all database data)
+    cmd: "{{.COMPOSE}} down -v"
+
+  build:
+    desc: Build Docker images
+    cmd: "{{.COMPOSE}} build"
+
+  build:nc:
+    desc: Build Docker images without cache
+    cmd: "{{.COMPOSE}} build --no-cache"
+
+  rebuild:
+    desc: Rebuild everything from scratch and start the stack
+    cmds:
+      - task: down
+      - task: build:nc
+      - task: up
+
+  logs:
+    desc: Stream logs from all services
+    cmd: "{{.COMPOSE}} logs -f"
+
+  logs:api:
+    desc: Stream logs from the api service
+    cmd: "{{.COMPOSE}} logs -f api"
+
+  logs:web:
+    desc: Stream logs from the web service
+    cmd: "{{.COMPOSE}} logs -f web"
+
+  ps:
+    desc: List container status
+    cmd: "{{.COMPOSE}} ps"
+
+  restart:api:
+    desc: Restart the api service
+    cmd: "{{.COMPOSE}} restart api"
+
+  # ── API tests ─────────────────────────────────────────────────────────────────
+
+  api:test:
+    desc: Run API unit tests inside Docker (no database needed)
+    cmds:
+      - docker build --target test -t {{.API_TEST_IMAGE}} -f apps/api/Dockerfile .
+      - docker run --rm {{.API_TEST_IMAGE}}
+
+  api:test:cov:
+    desc: Run API unit tests with coverage report
+    cmds:
+      - docker build --target test -t {{.API_TEST_IMAGE}} -f apps/api/Dockerfile .
+      - docker run --rm {{.API_TEST_IMAGE}} npm run test:cov
+
+  api:test:e2e:
+    desc: Run API e2e tests (spins up test postgres, migrates, runs, then tears down)
+    cmds:
+      - "{{.COMPOSE_TEST}} up -d postgres-test"
+      - "{{.COMPOSE_TEST}} run --rm api-e2e npx prisma migrate deploy"
+      - "{{.COMPOSE_TEST}} run --rm api-e2e npm run test:e2e"
+      - "{{.COMPOSE_TEST}} down postgres-test"
+
+  # ── Database ──────────────────────────────────────────────────────────────────
+
+  db:migrate:
+    desc: Apply Prisma migrations to the stack database
+    cmd: "{{.COMPOSE}} run --rm api npx prisma migrate deploy"
+
+  db:reset:
+    desc: Reset the stack database and replay all migrations from scratch
+    cmd: "{{.COMPOSE}} run --rm api npx prisma migrate reset --force"
+
+  db:studio:
+    desc: Open Prisma Studio at http://localhost:5555
+    cmd: "{{.COMPOSE}} run --rm -p 5555:5555 api npx prisma studio"
+
+  # ── Shells ────────────────────────────────────────────────────────────────────
+
+  shell:api:
+    desc: Open a shell in the api container
+    cmd: "{{.COMPOSE}} exec api sh"
+
+  shell:db:
+    desc: Open psql in the postgres container
+    cmd: "{{.COMPOSE}} exec postgres psql -U chatlab chatlab"
